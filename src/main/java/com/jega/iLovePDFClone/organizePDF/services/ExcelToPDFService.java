@@ -16,21 +16,37 @@ import com.itextpdf.text.pdf.PdfWriter;
 @Service
 public class ExcelToPDFService {
 	public byte[] convertToPdf(MultipartFile file) throws Exception {
+		//validating input
+		 if (file == null || file.isEmpty()) {
+	            throw new IllegalArgumentException("Uploaded file is empty or missing.");
+	        }
+		//this well help us handle the resources efficiently 
 	    try(XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream());
 	         ByteArrayOutputStream out = new ByteArrayOutputStream()){
-	    
-	    	XSSFSheet sheet = workbook.getSheetAt(0);
+	        // creating a document , connecting it with out and opening it
 	    	Document document = new Document();
 	    	PdfWriter.getInstance(document, out);
 	    	document.open();
-	    	PdfPTable table = new PdfPTable(sheet.getRow(0).getPhysicalNumberOfCells());
+	     //this loop take one by one spread sheet and convert to PDF
+	    	 for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
+	        XSSFSheet sheet = workbook.getSheetAt(i);
+	        //validation null check
+	        Row headerRow = sheet.getRow(0);
+            if (headerRow == null) {
+                throw new IllegalArgumentException("Excel sheet is empty or missing header row.");
+            }
+	    	//creating a column in PDF and creating a table structure
+	    	PdfPTable table = new PdfPTable(headerRow.getPhysicalNumberOfCells());
+	    	//adding a row to the table
 	    	for (Row row : sheet) {
 	    	    for (Cell cell : row) {
 	    	        table.addCell(new PdfPCell(new Phrase(cell.toString())));
 	    	    }
 	    	}
-	    
 	    	document.add(table);
+	    	  document.add(new com.itextpdf.text.Paragraph("\n")); // spacing between sheets
+	         }
+
 	    	document.close();
 	    	
 	    	return out.toByteArray();
