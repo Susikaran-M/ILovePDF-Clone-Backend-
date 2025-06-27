@@ -2,6 +2,7 @@ package com.jega.iLovePDFClone.organizePDF.services;
 
 import java.io.ByteArrayOutputStream;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -24,9 +25,11 @@ public class ExcelToPDFService {
 	    try(XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream());
 	         ByteArrayOutputStream out = new ByteArrayOutputStream()){
 	        // creating a document , connecting it with out and opening it
+	    	//data formatter is used to extract data more clearly
 	    	Document document = new Document();
 	    	PdfWriter.getInstance(document, out);
 	    	document.open();
+	    	DataFormatter formatter = new DataFormatter();
 	     //this loop take one by one spread sheet and convert to PDF
 	    	 for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
 	        XSSFSheet sheet = workbook.getSheetAt(i);
@@ -40,7 +43,8 @@ public class ExcelToPDFService {
 	    	//adding a row to the table
 	    	for (Row row : sheet) {
 	    	    for (Cell cell : row) {
-	    	        table.addCell(new PdfPCell(new Phrase(cell.toString())));
+	    	    	String cellValue = formatter.formatCellValue(cell);//extracting form cell
+	    	        table.addCell(new PdfPCell(new Phrase(cellValue)));
 	    	    }
 	    	}
 	    	document.add(table);
