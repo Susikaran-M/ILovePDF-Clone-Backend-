@@ -21,6 +21,8 @@ import com.itextpdf.text.pdf.PdfWriter;
 public class ExcelToPDFService {
 	public byte[] convertToPdf(MultipartFile file) throws Exception {
 		//validating input
+		boolean atLeastOneSheetAdded = false;
+
 		 if (file == null || file.isEmpty()) {
 	            throw new IllegalArgumentException("Uploaded file is empty or missing.");
 	        }
@@ -73,24 +75,23 @@ public class ExcelToPDFService {
 	    	document.add(new Paragraph("Columns "+(startCol + 1)+ "to" + endCol));
 	    	document.add(new Paragraph("\n"));
 	    	document.add(table);
+	    	atLeastOneSheetAdded = true;
+
 	    	document.add(new Paragraph("\n"));// spacing between sheets
 	         }
 	    	 }
 	    	document.close();
-	    	
+	    	//if excel workbook is null
+	    	if (!atLeastOneSheetAdded) {
+	    	    document.add(new Paragraph("No data found in any Excel sheet."));
+	    	}
+
 	    	return out.toByteArray();
 	    	
 	    }
-		}
+	}
 }
 //validation null check
 //Row headerRow = sheet.getRow(0);
 
-//if (headerRow == null) {
-//    throw new IllegalArgumentException("Excel sheet is empty or missing header row.");
-//}
-//creating a column in PDF and creating a table structure
-//if(max==0) {
-//	throw new IllegalStateException("Cannot create PDF table. No data found in the Excel sheet.");
-//
-//}
+
