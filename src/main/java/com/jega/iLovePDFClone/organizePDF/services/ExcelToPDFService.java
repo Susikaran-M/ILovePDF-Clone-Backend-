@@ -1,97 +1,61 @@
 package com.jega.iLovePDFClone.organizePDF.services;
 
-import java.io.ByteArrayOutputStream;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+
+
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.Phrase;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
 
-@Service      
+import java.io.*;
+import java.nio.file.*;
+import java.util.Comparator;
+import java.util.UUID;
+
+@Service
 public class ExcelToPDFService {
-	public byte[] convertToPdf(MultipartFile file) throws Exception {
-		//validating input
-		boolean atLeastOneSheetAdded = false;
 
-		 if (file == null || file.isEmpty()) {
-	            throw new IllegalArgumentException("Uploaded file is empty or missing.");
-	        }
-		//this well help us handle the resources efficiently 
-	    try(XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream());
-	         ByteArrayOutputStream out = new ByteArrayOutputStream()){
-	        // creating a document , connecting it with out and opening it
-	    	//data formatter is used to extract data more clearly
-	    	Document document = new Document();
-	    	PdfWriter.getInstance(document, out);
-	    	document.open();
-	    	DataFormatter formatter = new DataFormatter();
-	    	int chunkSize=4; //spliting columns into small pieces
-	     //this loop take one by one spread sheet and convert to PDF
-	    	 for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-	        XSSFSheet sheet = workbook.getSheetAt(i);
-	        int max =0;
-	        for (int j = sheet.getFirstRowNum(); j <= sheet.getLastRowNum(); j++) {
-	            Row row = sheet.getRow(j);
-	            int cellCount=0;
-	            if (row != null) {
-	              cellCount = row.getPhysicalNumberOfCells();
-	            }
-	             if(cellCount>max) {
-	            	 max=cellCount;
-	             }
-	        
-	        }
-	        if(max<=0) continue;
-	        //Break into chunks and generate separate tables
-            for (int startCol = 0; startCol < max; startCol += chunkSize) {
-                int endCol = Math.min(startCol + chunkSize, max);
-                int actualChunkSize = endCol - startCol;
-	    	PdfPTable table = new PdfPTable(actualChunkSize);
-	    	table.setWidthPercentage(95);//giving 10% of margin
-	    	//adding a row to the table
-	    	for (int r = sheet.getFirstRowNum(); r <= sheet.getLastRowNum(); r++) {
-	    	    Row row = sheet.getRow(r);
-	    	    if (row == null) continue;
-	    	for (int k = startCol; k < endCol; k++) {
-	    	    Cell cell = row.getCell(k, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-	    	    String cellValue = (cell == null) ? "" : formatter.formatCellValue(cell);
-	    	    PdfPCell pdfCell=new PdfPCell(new Phrase(cellValue));
-	    	    pdfCell.setNoWrap(false);
-	    	    pdfCell.setMinimumHeight(25f); 
-	    	    pdfCell.setVerticalAlignment(Element.ALIGN_TOP); 
+    public byte[] convertExcelToPdf(MultipartFile file) throws Exception {
+        // 1️⃣ Validate input
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded file is empty or missing.");
+        }
 
-	    	    table.addCell(pdfCell);
-	    	} }
-	    	document.add(new Paragraph("Columns "+(startCol + 1)+ "to" + endCol));
-	    	document.add(new Paragraph("\n"));
-	    	document.add(table);
-	    	atLeastOneSheetAdded = true;
+        //  Creating temp input/output directories
+        Path tempDir = Files.createTempDirectory("libreoffice-temp");// creates the temporary folder path uniquely
+        File inputFile = new File(tempDir.toFile(), UUID.randomUUID() + ".xlsx");//it create a subfile inside the tempDir
+        File outputFile = new File(tempDir.toFile(), inputFile.getName().replace(".xlsx", ".pdf"));// it changes the .xlsx extension
 
-	    	document.add(new Paragraph("\n"));// spacing between sheets
-	         }
-	    	 }
-	    	document.close();
-	    	//if excel workbook is null
-	    	if (!atLeastOneSheetAdded) {
-	    	    document.add(new Paragraph("No data found in any Excel sheet."));
-	    	}
+        //  Save uploaded file
+        file.transferTo(inputFile);
 
-	    	return out.toByteArray();
-	    	
-	    }
-	}
+        // finding the os
+        String os = System.getProperty("os.name").toLowerCase();
+        String libreCmd = os.contains("win") ? "soffice" : "libreoffice";
+
+        // this build run the command in os to convert using libreoffice
+        ProcessBuilder pb = new ProcessBuilder(
+                libreCmd,
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir", tempDir.toAbsolutePath().toString(),//output path
+                inputFile.getAbsolutePath()
+        );
+        //merges stderr and stdout
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        process.waitFor();// it stops the java code until the process completed.
+
+        // 5️⃣ Load result and clean up
+        if (!outputFile.exists()) {
+            throw new RuntimeException("Something went worng, failed to generate PDF.");
+        }
+
+        byte[] pdfBytes = Files.readAllBytes(outputFile.toPath());
+        // clears the temporarily created files 
+        Files.walk(tempDir).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+        return pdfBytes;
+    }
 }
-//validation null check
-//Row headerRow = sheet.getRow(0);
-
 
