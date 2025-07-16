@@ -16,7 +16,7 @@ import java.util.UUID;
 public class ExcelToPDFService {
 
     public byte[] convertExcelToPdf(MultipartFile file) throws Exception {
-        // 1️⃣ Validate input
+        // Validate input
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty or missing.");
         }
@@ -24,7 +24,8 @@ public class ExcelToPDFService {
         //  Creating temp input/output directories
         Path tempDir = Files.createTempDirectory("libreoffice-temp");// creates the temporary folder path uniquely
         File inputFile = new File(tempDir.toFile(), UUID.randomUUID() + ".xlsx");//it create a subfile inside the tempDir
-        File outputFile = new File(tempDir.toFile(), inputFile.getName().replace(".xlsx", ".pdf"));// it changes the .xlsx extension
+        File outputFile = new File(tempDir.toFile(), 
+        	inputFile.getName().replace(".xlsx", ".pdf"));// it changes the .xlsx extension
 
         //  Save uploaded file
         file.transferTo(inputFile);

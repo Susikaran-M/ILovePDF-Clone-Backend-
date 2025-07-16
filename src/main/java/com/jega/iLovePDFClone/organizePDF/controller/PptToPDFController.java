@@ -1,24 +1,23 @@
 package com.jega.iLovePDFClone.organizePDF.controller;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.jega.iLovePDFClone.organizePDF.services.ExcelToPDFService;
+import com.jega.iLovePDFClone.organizePDF.services.PptToPDFService;
 
 @RestController
-
-@RequestMapping("/api/excel")
-
-public class ExcelToPDFController {
+@RequestMapping("/api/ppt")
+public class PptToPDFController {
 
     @Autowired
-    private ExcelToPDFService libreService;
+    private PptToPDFService libreService;
     private byte[] pdfBytes;
     @PostMapping("/convert")
     public ResponseEntity<byte[]> convertWithLibreOffice(@RequestParam("file") MultipartFile file) {
         try {
-            pdfBytes = libreService.convertExcelToPdf(file);
+            pdfBytes = libreService.convertPptToPdf(file);
          // returning the output
            return ResponseEntity.ok()
 		    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ExcelPDF.pdf")
@@ -43,7 +42,7 @@ public class ExcelToPDFController {
 
          // returning the output
            return ResponseEntity.ok()
-		    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=ExcelPDF.pdf")
+		    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=PptPDF.pdf")
 		    .contentType(MediaType.APPLICATION_PDF)
 		    .body(pdfBytes);
            
