@@ -1,55 +1,72 @@
 package com.jega.iLovePDFClone.organizePDF.services;
 
 import org.springframework.stereotype.Service;
-
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
+import java.io.*;
+import java.nio.file.*;
+import java.util.Comparator;
 import java.util.UUID;
 
 @Service
 public class WordToPdfService {
 
-    public byte[] convertToPdf(InputStream inputStream, String originalFilename) throws Exception {
-        // Get extension
-        String extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
+	public byte[] convertToPdf(InputStream inputStream, String originalFilename) throws Exception {
+	    //Validate input
+	    if (inputStream == null || originalFilename == null || !originalFilename.contains(".")) {
+	        throw new IllegalArgumentException("Invalid input stream or filename.");
+	    }
 
-        // Create temp input file
-        File inputFile = File.createTempFile(UUID.randomUUID().toString(), extension);
-        Files.copy(inputStream, inputFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+	    String extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
 
-        // Create temp output folder
-        File outputDir = Files.createTempDirectory("pdf-output").toFile();
+	    //reate temp input file
+	    Path inputPath = Files.createTempFile(UUID.randomUUID().toString(), extension);
+	    Files.copy(inputStream, inputPath, StandardCopyOption.REPLACE_EXISTING);
 
-        // Build and execute command
-        String command = String.format(
-            "\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\" --headless --convert-to pdf --outdir \"%s\" \"%s\"",
-            outputDir.getAbsolutePath(),
-            inputFile.getAbsolutePath()
-        );
+	    //Create temp output directory
+	    Path outputDir = Files.createTempDirectory("pdf-output");
 
-        Process process = Runtime.getRuntime().exec(command);
-        int exitCode = process.waitFor();
+	    //Build LibreOffice command
+	    String os = System.getProperty("os.name").toLowerCase();
+	    String libreCmd = os.contains("win") ? "soffice.exe" : "libreoffice";
 
-        if (exitCode != 0) {
-            throw new RuntimeException("LibreOffice failed to convert the file. Exit code: " + exitCode);
-        }
+	    ProcessBuilder pb = new ProcessBuilder(
+	        libreCmd,
+	        "--headless",
+	        "--convert-to", "pdf",
+	        "--outdir", outputDir.toAbsolutePath().toString(),
+	        inputPath.toAbsolutePath().toString()
+	    );
 
-        // Look for generated PDF in output directory
-        File[] pdfFiles = outputDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".pdf"));
-        if (pdfFiles == null || pdfFiles.length == 0) {
-            throw new RuntimeException("PDF file not generated. Check LibreOffice installation and input file format.");
-        }
+	    pb.redirectErrorStream(true);
+	    Process process = pb.start();
 
-        File pdfFile = pdfFiles[0]; // pick the first PDF found
+	    //Log output stream
+	    try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+	        reader.lines().forEach(System.out::println);
+	    }
 
-        byte[] pdfBytes = Files.readAllBytes(pdfFile.toPath());
+	    int exitCode = process.waitFor();
+	    if (exitCode != 0) {
+	        throw new RuntimeException("LibreOffice failed with exit code: " + exitCode);
+	    }
 
-        // Cleanup
-        inputFile.delete();
-        pdfFile.delete();
-        outputDir.delete();
+	    //Retrieve converted PDF
+	    File[] pdfFiles = outputDir.toFile().listFiles((dir, name) -> name.toLowerCase().endsWith(".pdf"));
+	    if (pdfFiles == null || pdfFiles.length == 0) {
+	        throw new RuntimeException("PDF not generated.");
+	    }
 
-        return pdfBytes;
+	    Path pdfPath = pdfFiles[0].toPath();
+	    byte[] pdfBytes = Files.readAllBytes(pdfPath);
+
+	    //Cleanup
+	    Files.deleteIfExists(pdfPath);
+	    Files.deleteIfExists(inputPath);
+	    Files.walk(outputDir)
+	         .sorted(Comparator.reverseOrder())
+	         .map(Path::toFile)
+	         .forEach(File::delete);
+
+	    return pdfBytes;
+	
     }
 }
