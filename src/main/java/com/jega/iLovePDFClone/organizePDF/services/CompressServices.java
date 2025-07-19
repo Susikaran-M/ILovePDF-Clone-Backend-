@@ -7,11 +7,14 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 @Service
 public class CompressServices {
 	public void compressPdfUsingGhostScript(MultipartFile file, String level, File outputFile) throws IOException {
