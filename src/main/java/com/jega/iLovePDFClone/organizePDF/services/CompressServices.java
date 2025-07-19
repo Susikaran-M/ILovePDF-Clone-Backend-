@@ -42,7 +42,7 @@ public class CompressServices {
 
 	        // Add compression level settings
 	        switch (level.toLowerCase()) {
-	            case "low" -> command.addAll(List.of(
+	            case "high" -> command.addAll(List.of(
 	                "-dPDFSETTINGS=/screen",
 	                "-dColorImageDownsampleType=/Bicubic",
 	                "-dColorImageResolution=72",
@@ -60,7 +60,7 @@ public class CompressServices {
 	                "-dMonoImageDownsampleType=/Subsample",
 	                "-dMonoImageResolution=150"
 	            ));
-	            case "high" -> command.addAll(List.of(
+	            case "low" -> command.addAll(List.of(
 	                "-dPDFSETTINGS=/printer",
 	                "-dColorImageDownsampleType=/Bicubic",
 	                "-dColorImageResolution=300",
