@@ -1,6 +1,7 @@
 package com.jega.iLovePDFClone.organizePDF.services;
 
 import java.awt.Dimension;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 
@@ -23,6 +24,8 @@ public class PdfToPptServices {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty or missing.");
         }
+        
+        System.setProperty("java.awt.headless", "true");
 
         try (PDDocument document = PDDocument.load(file.getInputStream());
              XMLSlideShow ppt = new XMLSlideShow()) {
